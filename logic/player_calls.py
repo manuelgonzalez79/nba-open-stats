@@ -38,5 +38,8 @@ def get_player_combined_stats():
 
     combined_data = pd.merge(player_stats_data, player_bio_stats_data, how='inner', suffixes=['ST', 'BIO'])
     combined_data['MPG'] = combined_data.apply(calculate_mpg, axis=1)
+    
+    # Replace '-' with '.'
+    combined_data['PLAYER_HEIGHT'] = combined_data['PLAYER_HEIGHT'].str.replace('-', '.', regex=False)
 
     return combined_data
