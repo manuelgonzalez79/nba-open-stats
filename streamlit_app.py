@@ -1,40 +1,51 @@
-import altair as alt
-import numpy as np
+
 import pandas as pd
 import streamlit as st
+import nba_calls
+import visualize
 
-"""
-# Welcome to Streamlit!
+# Streamlit dashboard
+st.title("NBA Player Stats Dashboard")
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:.
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+# Sidebar components
+st.sidebar.header("Filters")
+age = st.sidebar.slider("Select Age", 18, 38, 18, 1)
+height = st.sidebar.slider("Select Height (in feet)", 6.0, 7.5, 6.0, 0.1)
+min_mpg = st.sidebar.slider("Select Minimum MPG", 0.0, 40.0, 0.0, 1.0)
+games = st.sidebar.slider("Select Minimum Games played", 0, 82, 0, 1)
 
-num_points = st.slider("Number of points in spiral", 1, 10000, 1100)
-num_turns = st.slider("Number of turns in spiral", 1, 300, 31)
+# Get player statistics
+all_players_stats = nba_calls.get_player_combined_stats()
 
-indices = np.linspace(0, 1, num_points)
-theta = 2 * np.pi * num_turns * indices
-radius = indices
+# Replace '-' with '.'
+all_players_stats['PLAYER_HEIGHT'] = all_players_stats['PLAYER_HEIGHT'].str.replace('-', '.', regex=False)
 
-x = radius * np.cos(theta)
-y = radius * np.sin(theta)
+# Filter players based on age and height
+filtered_players = all_players_stats[(pd.to_numeric(all_players_stats['AGE']) >= age) 
+                                     & (pd.to_numeric(all_players_stats['PLAYER_HEIGHT']) >= height) 
+                                     & (pd.to_numeric(all_players_stats['MPG']) >= min_mpg) 
+                                     & (pd.to_numeric(all_players_stats['GP']) >= games)]
 
-df = pd.DataFrame({
-    "x": x,
-    "y": y,
-    "idx": indices,
-    "rand": np.random.randn(num_points),
-})
 
-st.altair_chart(alt.Chart(df, height=700, width=700)
-    .mark_point(filled=True)
-    .encode(
-        x=alt.X("x", axis=None),
-        y=alt.Y("y", axis=None),
-        color=alt.Color("idx", legend=None, scale=alt.Scale()),
-        size=alt.Size("rand", legend=None, scale=alt.Scale(range=[1, 150])),
-    ))
+
+# Display bar charts
+st.header("Top 20 Players by Net Rating")
+net_rating_data = filtered_players.nlargest(20, 'NET_RATING')
+net_rating_chart = visualize.create_bar_chart(net_rating_data, 'PLAYER_NAME', 'NET_RATING')
+st.altair_chart(net_rating_chart, use_container_width=True)
+
+st.header("Top 20 Players by Points")
+points_data = filtered_players.nlargest(20, 'PTS')
+points_chart = visualize.create_bar_chart(points_data, 'PLAYER_NAME', 'PTS')
+st.altair_chart(points_chart, use_container_width=True)
+
+st.header("Top 20 Players by Assists")
+assists_data = filtered_players.nlargest(20, 'AST')
+assists_chart = visualize.create_bar_chart(assists_data, 'PLAYER_NAME', 'AST')
+st.altair_chart(assists_chart, use_container_width=True)
+
+st.header("Top 20 Players by Rebounds")
+rebounds_data = filtered_players.nlargest(20, 'REB')
+rebounds_chart = visualize.create_bar_chart(rebounds_data, 'PLAYER_NAME', 'REB')
+st.altair_chart(rebounds_chart, use_container_width=True)
